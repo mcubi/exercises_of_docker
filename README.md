@@ -1,4 +1,4 @@
-# Práctica: Fiesta Meter — Flask + Gunicorn + Nginx
+# Fiesta Meter: Flask, Gunicorn & Nginx integration practise
 ---
 ## 1 — App's Dockerfile (Gunicorn)
 
@@ -8,7 +8,9 @@
 
 ## 2 — Building the image
 
-```docker build -t viaje-estudios .```
+```
+docker build -t viaje-estudios .
+```
 
 ---
 
