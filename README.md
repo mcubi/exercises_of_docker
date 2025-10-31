@@ -8,7 +8,7 @@
 
 ## 2 — Building the image
 
-### docker build -t viaje-estudios .
+```docker build -t viaje-estudios .```
 
 ---
 
