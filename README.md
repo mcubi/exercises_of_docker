@@ -1,89 +1,65 @@
-# Practica: Fiesta Meter — Flask + Gunicorn + Nginx
+# Práctica: Fiesta Meter — Flask + Gunicorn + Nginx
+---
+## 1 — App's Dockerfile (Gunicorn)
 
-## Objetivo
+<img width="677" height="377" alt="image" src="https://github.com/user-attachments/assets/ae3999a2-22c3-42de-81ea-b02cd6f39cef" />
 
-Publicar la aplicacion Flask "Fiesta Meter" (votos humoristicos entre nombres ficticios) detras de Nginx. La app debe ejecutarse con Gunicorn como servidor de aplicaciones. Se trabaja con 2 contenedores y 1 red Docker creada manualmente.
+---
 
-## Material entregado
+## 2 — Building the image
+
+### docker build -t viaje-estudios .
+
+---
+
+## 3 — Creating the network
 
 ```
-fiesta-meter/
-├─ app/
-│  ├─ app.py
-│  ├─ wsgi.py
-│  └─ requirements.txt
-└─ templates/
-   └─ index.html
+docker network create webnet
+```
+---
+
+## 4 — Flask execute (Gunicorn)
+
+```
+docker run -d --name fiesta_app --network webnet viaje-estudios
+```
+## To see logs;
+
+```
+docker logs fiesta_app
+```
+```
+[INFO] Listening at: http://0.0.0.0:8000
+[INFO] Booting worker with pid: 6
 ```
 
-No se entrega Dockerfile ni configuracion de Nginx. Eso se construye en los pasos 1 a 6.
+---
 
-## Tareas (sigue exactamente los pasos 1 a 6)
+## 5 — Nginx server: proxy config
 
-1. **Crear el Dockerfile de la aplicacion (Gunicorn)**
-   - Base: `python:3.14.0-alpine3.22`
-   - Directorio de trabajo: /app
-   - Instala dependencias desde `requirements.txt` sin cache
-   - Copia el codigo al contenedor
-   - Publicalo en el puerto 8000
-   - `CMD` debe arrancar Gunicorn en `0.0.0.0:8000` con `wsgi:app`
+<img width="800" height="382" alt="image" src="https://github.com/user-attachments/assets/6403992a-bf65-4bc0-a112-808bb027183a" />
 
-   Pista de comando final: `gunicorn -b 0.0.0.0:8000 wsgi:app`
 
-2. **Construir la imagen de la app**
+## Nginx running:
 
-   Desde la carpeta `app/`:
+```
+docker run -d --name nginx_proxy   --network webnet   -p 8080:80   -v ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro   nginx:1.27-alpine
+```
 
-   Construye una imagen llamada: viaje-estudios
+---
 
-3. **Crear la red Docker compartida**
+## 6 — Testing
 
-   Crea una red docker compartida llamada webnet
+<img width="1919" height="1079" alt="image" src="https://github.com/user-attachments/assets/f2610308-579d-4c7e-909c-3c5d43e618db" />
 
-4. **Ejecutar la app en esa red**
+<img width="1919" height="1076" alt="image" src="https://github.com/user-attachments/assets/7b98dc72-1fe3-4301-993e-9982ac0ebfbb" />
 
-   Adicionalmente:
-   docker logs fiesta_app    # Verifica Gunicorn escuchando en 0.0.0.0:8000
 
-5. **Configurar Nginx como reverse proxy**
+---
 
-   - Crea `nginx/default.conf` con un servidor que escuche en `80`, use `server_name app.localhost;` y haga proxy de `/` a `http://fiesta_app:8000`.
-   - Asegura las cabeceras `Host`, `X-Real-IP`, `X-Forwarded-For`, `X-Forwarded-Proto`.
+## Why Flask doesn't expose itself directly?
 
-   ```bash
-   docker run -d --name nginx_proxy \
-     --network webnet \
-     -p 8080:80 \
-     -v ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro \
-     nginx:1.27-alpine
-   ```
-
-6. **Probar**
-
-   - Abre `http://localhost:8080/` y realiza votos.
-   - Comprueba `http://localhost:8080/health` para obtener `{"status":"ok"}`.
-
-## Entrega
-
-- Lista de comandos utilizados en cada paso (1 a 6) en `README.md`.
-- Captura de pantalla de la app en `http://localhost:8080/`.
-- Explicacion breve (3 a 5 lineas) sobre por que Flask no se expone directamente y que aporta Nginx como reverse proxy.
-
-## Criterios de evaluacion (10 puntos)
-
-- Dockerfile + Gunicorn correctos (3 pt)
-- Red Docker y ejecucion (2 pt)
-- Reverse proxy funcional (3 pt)
-- README + captura + explicacion (2 pt)
-
-### Bonus (hasta +2)
-
-- Dos cabeceras de seguridad (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, etc).
-
-## FAQ rapidas
-
-- **502 Bad Gateway**: revisa que el contenedor se llame `fiesta_app`, que ambos esten en `webnet` y que Nginx apunte a `http://fiesta_app:8000`.
-- **No carga en 8080**: verifica que expongas `-p 8080:80` en Nginx (no en la app).
-- **Funciona local pero no en Docker**: Gunicorn debe escuchar en `0.0.0.0` (no `127.0.0.1`).
-
-Recuerda: el navegador nunca habla con Flask directamente. Siempre entra por Nginx, que reenvia a Gunicorn y luego Flask.
+First of all, web servers like Nginx or Apache does not run Python commands by default, so the existence of WSGI server actors is necessary to have compatibility.
+Also, frameworks like Flask are not designed for production and high traffic. So Flask expose the features, Gunicorn acts as WSGI server providing compatibility and efficiency, and
+Nginx acts as 'reverse proxy' so it can receive the requests and tasks, providing performance, scalability and improving security
